@@ -63,6 +63,20 @@ export async function updateInvoice(id: string, input: InvoiceUpdate): Promise<I
   return unwrap(api.put<ApiResult<Invoice>>(`/invoices/${id}`, input));
 }
 
+/** Removes the invoice; on mock fallback it is spliced out of the shared mock list. */
+export async function deleteInvoice(id: string): Promise<void> {
+  return withMockFallback(
+    `DELETE /invoices/${id}`,
+    async () => {
+      await api.delete(`/invoices/${id}`);
+    },
+    () => {
+      const index = mockInvoices.findIndex((inv) => inv.id === id);
+      if (index !== -1) mockInvoices.splice(index, 1);
+    },
+  );
+}
+
 /** Mutation: no mock fallback. */
 export async function recordPayment(invoiceId: string, input: PaymentInput): Promise<Payment> {
   return unwrap(api.post<ApiResult<Payment>>(`/invoices/${invoiceId}/payments`, input));

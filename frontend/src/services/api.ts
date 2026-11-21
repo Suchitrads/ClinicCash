@@ -9,6 +9,7 @@
  * GET    /invoices/{id}
  * POST   /invoices
  * PUT    /invoices/{id}
+ * DELETE /invoices/{id}
  * POST   /invoices/{id}/payments
  * POST   /invoices/{id}/mark-paid
  * POST   /invoices/{id}/promise-to-pay

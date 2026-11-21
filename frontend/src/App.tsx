@@ -1,9 +1,18 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
-import { ComingSoon } from './components/common/ComingSoon';
 import LandingPage from './pages/Landing/LandingPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ReceivablesPage from './pages/Receivables/ReceivablesPage';
+import InvoicesPage from './pages/Invoices/InvoicesPage';
+import ForecastPage from './pages/Forecast/ForecastPage';
+import FundingChainPage from './pages/FundingChain/FundingChainPage';
+import BillsPage from './pages/Bills/BillsPage';
+import PaymentPlansPage from './pages/PaymentPlans/PaymentPlansPage';
+import RemindersPage from './pages/Reminders/RemindersPage';
+import AlertsPage from './pages/Alerts/AlertsPage';
+import SettingsPage from './pages/Settings/SettingsPage';
+import GapCloserPage from './pages/GapCloser/GapCloserPage';
+import ReportsPage from './pages/Reports/ReportsPage';
 
 export default function App() {
   return (
@@ -12,16 +21,16 @@ export default function App() {
       <Route path="/dashboard" element={<AppLayout />}>
         <Route index element={<DashboardPage />} />
         <Route path="receivables" element={<ReceivablesPage />} />
-        <Route path="invoices" element={<ComingSoon title="Invoices" />} />
-        <Route path="forecast" element={<ComingSoon title="Cash Flow Forecast" />} />
-        <Route path="funding-chain" element={<ComingSoon title="Funding Chain" />} />
-        <Route path="gap-closer" element={<ComingSoon title="Gap Closer" />} />
-        <Route path="bills" element={<ComingSoon title="Bills & Expenses" />} />
-        <Route path="payment-plans" element={<ComingSoon title="Payment Plans" />} />
-        <Route path="reminders" element={<ComingSoon title="Reminders" />} />
-        <Route path="alerts" element={<ComingSoon title="Alerts" />} />
-        <Route path="reports" element={<ComingSoon title="Reports & Analytics" />} />
-        <Route path="settings" element={<ComingSoon title="Settings" />} />
+        <Route path="invoices" element={<InvoicesPage />} />
+        <Route path="forecast" element={<ForecastPage />} />
+        <Route path="funding-chain" element={<FundingChainPage />} />
+        <Route path="gap-closer" element={<GapCloserPage />} />
+        <Route path="bills" element={<BillsPage />} />
+        <Route path="payment-plans" element={<PaymentPlansPage />} />
+        <Route path="reminders" element={<RemindersPage />} />
+        <Route path="alerts" element={<AlertsPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -44,6 +44,12 @@ html.dark {
     background-color: rgb(var(--card));
     color: rgb(var(--text));
   }
+
+  select option:checked,
+  select option:hover {
+    background-color: rgb(var(--accent));
+    color: rgb(var(--accent-foreground));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -55,3 +61,40 @@ html.dark {
     scroll-behavior: auto !important;
   }
 }
+
+/* Dental cursor: tooth icon as the default pointer (32x32, hotspot at centre) */
+body {
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='32'%20height='32'%20viewBox='0%200%2032%2032'%3E%3Cpath%20d='M9%204C5%204%203%207%203%2011C3%2015%205%2018%206%2022C7%2027%209%2029%2011%2029C13%2029%2013.5%2025%2016%2025C18.5%2025%2019%2029%2021%2029C23%2029%2025%2027%2026%2022C27%2018%2029%2015%2029%2011C29%207%2027%204%2023%204C20%204%2018%206%2016%206C14%206%2012%204%209%204Z'%20fill='%230d9488'%20stroke='%23134e4a'%20stroke-width='1.5'%20stroke-linejoin='round'/%3E%3C/svg%3E") 16 16, auto;
+}
+
+/* Interactive elements keep the normal pointer */
+a,
+button,
+[role="button"],
+[role="option"],
+[role="listbox"],
+label[for],
+select,
+summary,
+input[type="checkbox"],
+input[type="radio"] {
+  cursor: pointer;
+}
+
+/* Text inputs keep the text cursor (skipped when disabled, see below) */
+input[type="text"]:not(:disabled),
+input[type="email"]:not(:disabled),
+input[type="number"]:not(:disabled),
+input[type="date"]:not(:disabled),
+input[type="tel"]:not(:disabled),
+input[type="search"]:not(:disabled),
+textarea:not(:disabled) {
+  cursor: text;
+}
+
+/* Disabled elements: last so it wins over the rules above */
+:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+

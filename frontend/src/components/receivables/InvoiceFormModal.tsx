@@ -4,6 +4,7 @@ import { createInvoice, updateInvoice } from '../../services';
 import { ApiError } from '../../services/api';
 import type { InvoiceInput, InvoiceUpdate } from '../../services/invoiceService';
 import type { Invoice } from '../../types';
+import { ThemedSelect } from '../ui/ThemedSelect';
 
 interface InvoiceFormModalProps {
   mode: 'create' | 'edit';
@@ -23,11 +24,11 @@ interface FormErrors {
 const CLAIM_STAGES = ['Submitted', 'Under review', 'Approved', 'Rejected', 'Paid'];
 
 const PRIMARY =
-  'inline-flex min-h-[44px] items-center justify-center rounded-xl bg-teal-600 px-4 text-sm font-medium text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:opacity-60 dark:bg-teal-500 dark:hover:bg-teal-400';
+  'inline-flex min-h-[44px] items-center justify-center rounded-xl bg-teal-600 px-4 text-sm font-medium text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60 dark:bg-teal-400 dark:text-slate-900 dark:hover:bg-teal-300';
 const SECONDARY =
-  'inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-bg px-4 text-sm font-medium text-text transition-colors hover:bg-border/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:opacity-60';
+  'inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-bg px-4 text-sm font-medium text-text transition-colors hover:bg-border/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60';
 const INPUT =
-  'mt-1 min-h-[44px] w-full rounded-lg border border-border bg-card px-3 text-sm text-text placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:opacity-60';
+  'mt-1 min-h-[44px] w-full rounded-xl border border-border bg-card px-3 text-sm text-text placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60';
 
 function messageFrom(err: unknown): string {
   return err instanceof ApiError ? err.message : 'Something went wrong. Please try again.';
@@ -244,21 +245,14 @@ export default function InvoiceFormModal({
           </Field>
 
           <Field id={`${baseId}-stage`} label="Claim stage" required>
-            <select
+            <ThemedSelect
               id={`${baseId}-stage`}
-              required
-              aria-required="true"
+              ariaLabel="Claim stage"
               value={claimStage}
-              onChange={(e) => setClaimStage(e.target.value)}
+              onChange={setClaimStage}
+              options={stageOptions.map((stage) => ({ value: stage, label: stage }))}
               disabled={submitting}
-              className={INPUT}
-            >
-              {stageOptions.map((stage) => (
-                <option key={stage} value={stage}>
-                  {stage}
-                </option>
-              ))}
-            </select>
+            />
           </Field>
 
           {isEdit && (
