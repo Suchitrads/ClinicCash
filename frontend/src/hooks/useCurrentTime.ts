@@ -1,0 +1,21 @@
+import { useEffect, useState } from 'react';
+
+/**
+ * Returns the current Date and refreshes it every second.
+ * The interval is cleared when the component unmounts.
+ */
+export function useCurrentTime(): Date {
+  const [now, setNow] = useState<Date>(() => new Date());
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+
+    return () => {
+      window.clearInterval(id);
+    };
+  }, []);
+
+  return now;
+}

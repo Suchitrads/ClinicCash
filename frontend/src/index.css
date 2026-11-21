@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: 248 250 252;            /* slate-50 (white-grey) */
+  --card: 255 255 255;          /* white */
+  --border: 226 232 240;        /* slate-200 */
+  --text: 15 23 42;             /* slate-900 */
+  --muted: 100 116 139;         /* slate-500 */
+  --accent: 13 148 136;         /* teal-600 */
+  --accent-foreground: 255 255 255;
+  --success: 22 163 74;         /* green-600 */
+  --warning: 245 158 11;        /* amber-500 */
+  --danger: 220 38 38;          /* red-600 */
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg: 11 17 32;               /* deep navy */
+  --card: 22 30 48;
+  --border: 40 52 75;
+  --text: 226 232 240;          /* slate-200 */
+  --muted: 148 163 184;         /* slate-400 */
+  --accent: 45 212 191;         /* teal-400 */
+  --accent-foreground: 11 17 32; /* deep navy */
+}
+
+@layer base {
+  body {
+    @apply bg-[rgb(var(--bg))] text-[rgb(var(--text))];
+  }
+
+  select,
+  input,
+  textarea {
+    color: rgb(var(--text));
+    background-color: rgb(var(--card));
+    border-color: rgb(var(--border));
+  }
+
+  select option {
+    background-color: rgb(var(--card));
+    color: rgb(var(--text));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
