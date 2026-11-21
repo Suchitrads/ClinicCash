@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,7 +10,8 @@ from app.routers import admin, alerts, auth, bills, clinic_settings, dashboard, 
 app = FastAPI(title="ClinicCash API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin, "http://127.0.0.1:5173"],
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -28,6 +29,17 @@ async def validation_error(request, exc: RequestValidationError):
         content={"error": {"code": "validation_error", "message": "Invalid request",
                            "details": jsonable_encoder(exc.errors())}},
     )
+@app.get("/")
+def root():
+    return {
+        "name": "ClinicCash API",
+        "status": "online",
+        "health": "/health",
+        "docs": "/docs",
+        "api_prefix": settings.api_prefix,
+    }
+
+
 app.include_router(health.router)
 init_db()
 app.include_router(admin.router, prefix=settings.api_prefix)
