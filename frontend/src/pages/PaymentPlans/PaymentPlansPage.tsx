@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Plus } from 'lucide-react';
-import { createInstallmentPlan, listPaymentPlans } from '../../services';
+import { createInstallmentPlan, listInvoices, listPaymentPlans } from '../../services';
 import type { InstallmentPlanInput } from '../../services';
 import { ApiError } from '../../services/api';
-import type { PaymentPlan } from '../../types';
+import type { Invoice, PaymentPlan } from '../../types';
+import { ThemedSelect } from '../../components/ui/ThemedSelect';
 
 const BASE =
   'inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:opacity-60';
@@ -69,13 +70,44 @@ interface NewPlanModalProps {
   onCreated: () => void;
 }
 
+function todayIso(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function NewPlanModal({ onClose, onCreated }: NewPlanModalProps) {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoiceId, setInvoiceId] = useState('');
   const [installmentAmount, setInstallmentAmount] = useState('');
   const [frequency, setFrequency] = useState<PaymentPlan['frequency']>('monthly');
-  const [startDate, setStartDate] = useState('');
+  const [startDate, setStartDate] = useState(todayIso());
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listInvoices()
+      .then((data) => {
+        const unpaid = data.filter((inv) => inv.status !== 'paid');
+        setInvoices(unpaid);
+        if (unpaid.length > 0) {
+          const first = unpaid[0];
+          setInvoiceId(first.id);
+          const rem = Math.max(0, first.amount - first.paidAmount);
+          setInstallmentAmount(String(Math.max(500, Math.ceil(rem / 3))));
+        }
+      })
+      .catch(() => { });
+  }, []);
+
+  function handleInvoiceSelect(id: string) {
+    setInvoiceId(id);
+    const chosen = invoices.find((inv) => inv.id === id);
+    if (chosen) {
+      const rem = Math.max(0, chosen.amount - chosen.paidAmount);
+      setInstallmentAmount(String(Math.max(500, Math.ceil(rem / 3))));
+    }
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -123,20 +155,38 @@ function NewPlanModal({ onClose, onCreated }: NewPlanModalProps) {
           New payment plan
         </h2>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
-          <div>
-            <label htmlFor="plan-invoice-id" className="mb-1 block text-sm text-text">
-              Invoice ID
-            </label>
-            <input
-              id="plan-invoice-id"
-              type="text"
-              value={invoiceId}
-              onChange={(e) => setInvoiceId(e.target.value)}
-              className={INPUT}
-              placeholder="e.g. INV-1001"
-              autoComplete="off"
-            />
-          </div>
+          {invoices.length > 0 ? (
+            <div>
+              <label htmlFor="plan-invoice-select" className="mb-1 block text-sm text-text">
+                Select invoice
+              </label>
+              <ThemedSelect
+                id="plan-invoice-select"
+                ariaLabel="Select invoice"
+                value={invoiceId}
+                onChange={handleInvoiceSelect}
+                options={invoices.map((inv) => ({
+                  value: inv.id,
+                  label: `${inv.id} - ${inv.payer.name} (₹${formatMoney(inv.amount - inv.paidAmount)} due)`,
+                }))}
+              />
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="plan-invoice-id" className="mb-1 block text-sm text-text">
+                Invoice ID
+              </label>
+              <input
+                id="plan-invoice-id"
+                type="text"
+                value={invoiceId}
+                onChange={(e) => setInvoiceId(e.target.value)}
+                className={INPUT}
+                placeholder="e.g. INV-001"
+                autoComplete="off"
+              />
+            </div>
+          )}
           <div>
             <label htmlFor="plan-installment" className="mb-1 block text-sm text-text">
               Installment amount (₹)

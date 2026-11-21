@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { Plus } from 'lucide-react';
-import { generateReminder, listReminders } from '../../services/invoiceService';
+import { Plus, Volume2, VolumeX } from 'lucide-react';
+import { generateReminder, listInvoices, listReminders } from '../../services/invoiceService';
 import type { ReminderInput } from '../../services/invoiceService';
 import { ApiError } from '../../services/api';
-import type { Reminder } from '../../types';
+import type { Invoice, Reminder } from '../../types';
 import { ThemedSelect } from '../../components/ui/ThemedSelect';
+import { isSpeechSupported, speakText, stopSpeech } from '../../lib/voice';
 
 const BASE =
   'inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:opacity-60';
@@ -15,6 +16,7 @@ const INPUT =
   'min-h-[44px] w-full rounded-xl border border-border bg-card px-3 text-sm text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500';
 const LINK =
   'inline-flex min-h-[44px] items-center text-sm font-medium text-teal-600 underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:text-teal-400';
+const VOICE_BTN = `${BASE} gap-2 border border-border bg-card text-text hover:bg-bg`;
 
 const TONE_OPTIONS = [
   { value: 'friendly', label: 'Friendly' },
@@ -61,6 +63,46 @@ function ReminderLinks({ reminder }: { reminder: Reminder }) {
   );
 }
 
+interface VoiceControlProps {
+  speaking: boolean;
+  supported: boolean;
+  onPlay: () => void;
+  onStop: () => void;
+}
+
+function VoiceControl({ speaking, supported, onPlay, onStop }: VoiceControlProps) {
+  if (!supported) {
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <button
+          type="button"
+          disabled
+          title="Voice is not supported in this browser"
+          className={VOICE_BTN}
+        >
+          <Volume2 className="h-4 w-4" aria-hidden="true" />
+          Play voice
+        </button>
+        <p className="text-xs text-text/60">Voice is not supported in this browser</p>
+      </div>
+    );
+  }
+  if (speaking) {
+    return (
+      <button type="button" onClick={onStop} className={VOICE_BTN}>
+        <VolumeX className="h-4 w-4" aria-hidden="true" />
+        Stop
+      </button>
+    );
+  }
+  return (
+    <button type="button" onClick={onPlay} className={VOICE_BTN}>
+      <Volume2 className="h-4 w-4" aria-hidden="true" />
+      Play voice
+    </button>
+  );
+}
+
 function LoadingSkeleton() {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Loading reminders">
@@ -77,11 +119,24 @@ interface GenerateModalProps {
 }
 
 function GenerateReminderModal({ onClose, onGenerated }: GenerateModalProps) {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoiceId, setInvoiceId] = useState('');
   const [tone, setTone] = useState<string>('friendly');
   const [language, setLanguage] = useState<string>('en');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  useEffect(() => {
+    listInvoices()
+      .then((data) => {
+        const unpaid = data.filter((inv) => inv.status !== 'paid');
+        setInvoices(unpaid);
+        if (unpaid.length > 0) {
+          setInvoiceId(unpaid[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -132,20 +187,39 @@ function GenerateReminderModal({ onClose, onGenerated }: GenerateModalProps) {
           Generate reminder
         </h2>
         <form onSubmit={handleSubmit} className="mt-4 space-y-4" noValidate>
-          <div className="space-y-1">
-            <label htmlFor="reminder-invoice-id" className="text-sm font-medium text-text">
-              Invoice ID
-            </label>
-            <input
-              id="reminder-invoice-id"
-              type="text"
-              value={invoiceId}
-              onChange={(e) => setInvoiceId(e.target.value)}
-              className={INPUT}
-              autoComplete="off"
-              disabled={submitting}
-            />
-          </div>
+          {invoices.length > 0 ? (
+            <div className="space-y-1">
+              <label htmlFor="reminder-invoice-select" className="text-sm font-medium text-text">
+                Select invoice
+              </label>
+              <ThemedSelect
+                id="reminder-invoice-select"
+                ariaLabel="Select invoice"
+                value={invoiceId}
+                onChange={setInvoiceId}
+                options={invoices.map((inv) => ({
+                  value: inv.id,
+                  label: `${inv.id} - ${inv.payer.name} (Due: ${inv.dueDate.slice(0, 10)})`,
+                }))}
+              />
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <label htmlFor="reminder-invoice-id" className="text-sm font-medium text-text">
+                Invoice ID
+              </label>
+              <input
+                id="reminder-invoice-id"
+                type="text"
+                value={invoiceId}
+                onChange={(e) => setInvoiceId(e.target.value)}
+                className={INPUT}
+                placeholder="e.g. INV-001"
+                autoComplete="off"
+                disabled={submitting}
+              />
+            </div>
+          )}
           <div className="space-y-1">
             <span className="text-sm font-medium text-text">Tone</span>
             <ThemedSelect value={tone} onChange={setTone} options={TONE_OPTIONS} ariaLabel="Reminder tone" />
@@ -184,6 +258,22 @@ export default function RemindersPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
+  const voiceSupported = isSpeechSupported();
+
+  useEffect(() => stopSpeech, []);
+
+  function playVoice(r: Reminder) {
+    setSpeakingId(r.id);
+    speakText(r.message, r.language, 0.9, () =>
+      setSpeakingId((cur) => (cur === r.id ? null : cur)),
+    );
+  }
+
+  function stopVoice() {
+    stopSpeech();
+    setSpeakingId(null);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -254,7 +344,17 @@ export default function RemindersPage() {
                   <td className="px-4 py-3 font-medium text-text">{r.invoiceId}</td>
                   <td className="px-4 py-3 text-text">{labelFor(TONE_OPTIONS, r.tone)}</td>
                   <td className="px-4 py-3 text-text">{labelFor(LANGUAGE_OPTIONS, r.language)}</td>
-                  <td className="max-w-md px-4 py-3 text-text">{r.message}</td>
+                  <td className="max-w-md px-4 py-3 text-text">
+                    <div className="space-y-2">
+                      <p>{r.message}</p>
+                      <VoiceControl
+                        speaking={speakingId === r.id}
+                        supported={voiceSupported}
+                        onPlay={() => playVoice(r)}
+                        onStop={stopVoice}
+                      />
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     <ReminderLinks reminder={r} />
                   </td>
@@ -288,6 +388,14 @@ export default function RemindersPage() {
                   </dd>
                 </div>
               </dl>
+              <div className="mt-3">
+                <VoiceControl
+                  speaking={speakingId === r.id}
+                  supported={voiceSupported}
+                  onPlay={() => playVoice(r)}
+                  onStop={stopVoice}
+                />
+              </div>
             </article>
           ))}
         </div>

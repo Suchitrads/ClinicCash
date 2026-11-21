@@ -6,4 +6,6 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     demo_today: str = "2026-11-21"
     api_prefix: str = "/api/v1"
+    upi_id: str = "clinic@upi"
+    google_client_id: str = ""
 settings = Settings()

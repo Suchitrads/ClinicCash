@@ -3,7 +3,8 @@ from datetime import date, timedelta
 from sqlmodel import Session, delete
 
 from app.config import settings
-from app.models.entities import Bill, ClinicSettings, Invoice, PaymentHistory, Payer
+from app.models.entities import (Bill, ClinicSettings, Invoice, PaymentHistory, PaymentPlan,
+                                 Payer, Reminder)
 
 PAYERS = [
     ("INS-1", "Star Health TPA", "INSURER"),
@@ -63,7 +64,7 @@ def demo_today() -> date:
 
 def reset_and_seed(session: Session) -> dict:
     today = demo_today()
-    for model in (Invoice, PaymentHistory, Bill, Payer, ClinicSettings):
+    for model in (Reminder, PaymentPlan, PaymentHistory, Invoice, Bill, Payer, ClinicSettings):
         session.exec(delete(model))
     session.commit()
 
@@ -72,9 +73,15 @@ def reset_and_seed(session: Session) -> dict:
         session.add(Payer(id=pid, name=name, type=ptype))
         payer_type[pid] = ptype
 
+    patient_map = {
+        "INV-001": "Ravi Kumar", "INV-002": "Asha Menon", "INV-003": "Vikram Seth",
+        "INV-004": "Sunita Rao", "INV-005": "Meera S.", "INV-006": "Arjun P.",
+        "INV-007": "Kavya R.", "INV-008": "Rohan D.", "INV-009": "Sana M.", "INV-010": "Nila V."
+    }
+
     for iid, pid, label, amount, offset, stage in INVOICES:
         due = today + timedelta(days=offset)
-        session.add(Invoice(id=iid, payer_id=pid, item_label=label, amount=amount,
+        session.add(Invoice(id=iid, payer_id=pid, patient_name=patient_map.get(iid), item_label=label, amount=amount,
                             due_date=due, claim_stage=stage,
                             created_at=due - timedelta(days=30)))
 

@@ -1,9 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { createInvoice, updateInvoice } from '../../services';
+import { createInvoice, listInvoices, listPayers, updateInvoice } from '../../services';
 import { ApiError } from '../../services/api';
 import type { InvoiceInput, InvoiceUpdate } from '../../services/invoiceService';
-import type { Invoice } from '../../types';
+import type { Invoice, Payer } from '../../types';
 import { ThemedSelect } from '../ui/ThemedSelect';
 
 interface InvoiceFormModalProps {
@@ -75,12 +75,20 @@ export default function InvoiceFormModal({
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const isEdit = mode === 'edit';
 
-  const [patientName, setPatientName] = useState(invoice?.patientName ?? '');
+  const [patientName, setPatientName] = useState(
+    invoice?.patientName ||
+      (invoice?.payer.name && invoice.payer.name !== 'Self Pay' ? invoice.payer.name : '') ||
+      '',
+  );
   const [payerName, setPayerName] = useState(invoice?.payer.name ?? '');
+  const [serviceDetails, setServiceDetails] = useState(invoice?.itemLabel ?? '');
   const [amount, setAmount] = useState(invoice ? String(invoice.amount) : '');
   const [dueDate, setDueDate] = useState(invoice ? invoice.dueDate.slice(0, 10) : '');
   const [claimStage, setClaimStage] = useState(invoice?.claimStage ?? 'Submitted');
   const [paidAmount, setPaidAmount] = useState(invoice ? String(invoice.paidAmount) : '0');
+  const [isInstallmentPlan, setIsInstallmentPlan] = useState(false);
+  const [planMonths, setPlanMonths] = useState(10);
+  const [knownPayers, setKnownPayers] = useState<Payer[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -93,6 +101,25 @@ export default function InvoiceFormModal({
 
   useEffect(() => {
     firstFieldRef.current?.focus();
+    listPayers()
+      .then((data) => {
+        if (data && data.length > 0) {
+          setKnownPayers(data);
+        } else {
+          listInvoices().then((invs) => {
+            const byId = new Map<string, Payer>();
+            invs.forEach((i) => byId.set(i.payer.id, i.payer));
+            setKnownPayers(Array.from(byId.values()));
+          }).catch(() => {});
+        }
+      })
+      .catch(() => {
+        listInvoices().then((invs) => {
+          const byId = new Map<string, Payer>();
+          invs.forEach((i) => byId.set(i.payer.id, i.payer));
+          setKnownPayers(Array.from(byId.values()));
+        }).catch(() => {});
+      });
   }, []);
 
   useEffect(() => {
@@ -105,7 +132,11 @@ export default function InvoiceFormModal({
 
   function validate(): FormErrors {
     const next: FormErrors = {};
-    if (!patientName.trim()) next.patientName = 'Patient name is required.';
+    if (!patientName.trim()) {
+      if (!payerName.trim() || payerName.trim() === 'Self Pay') {
+        next.patientName = 'Patient name is required.';
+      }
+    }
     if (!payerName.trim()) next.payer = 'Payer is required.';
     const amountNum = Number(amount);
     if (amount.trim() === '' || !Number.isFinite(amountNum) || amountNum <= 0) {
@@ -129,12 +160,28 @@ export default function InvoiceFormModal({
     setErrors(found);
     if (Object.keys(found).length > 0) return;
 
+    const trimmedPayer = payerName.trim();
+    const resolvedPatient = patientName.trim() || trimmedPayer || 'Patient';
+    const matchedPayer = knownPayers.find(
+      (p) =>
+        p.name.toLowerCase() === trimmedPayer.toLowerCase() ||
+        p.id.toLowerCase() === trimmedPayer.toLowerCase(),
+    );
+    const payerPayload = matchedPayer
+      ? { id: matchedPayer.id, name: matchedPayer.name }
+      : isEdit && invoice && invoice.payer.name.toLowerCase() === trimmedPayer.toLowerCase()
+        ? { id: invoice.payer.id, name: invoice.payer.name }
+        : { id: `PAY-${Date.now().toString(36).toUpperCase()}`, name: trimmedPayer };
+
     const base = {
-      patientName: patientName.trim(),
-      payer: { name: payerName.trim() },
+      patientName: resolvedPatient,
+      itemLabel: serviceDetails.trim() || undefined,
+      payer: payerPayload,
       amount: Number(amount),
       dueDate,
       claimStage,
+      isInstallmentPlan: !isEdit && isInstallmentPlan,
+      planMonths: !isEdit && isInstallmentPlan ? planMonths : undefined,
     };
 
     setSubmitting(true);
@@ -197,15 +244,51 @@ export default function InvoiceFormModal({
           </Field>
 
           <Field id={`${baseId}-payer`} label="Payer" required error={errors.payer}>
+            <div className="space-y-1.5">
+              <input
+                id={`${baseId}-payer`}
+                type="text"
+                required
+                list={`${baseId}-payers-list`}
+                aria-required="true"
+                aria-invalid={errors.payer ? true : undefined}
+                aria-describedby={errors.payer ? `${baseId}-payer-error` : undefined}
+                value={payerName}
+                onChange={(e) => setPayerName(e.target.value)}
+                placeholder="e.g. Star Health TPA, Care Plus, or Patient"
+                disabled={submitting}
+                className={INPUT}
+              />
+              <datalist id={`${baseId}-payers-list`}>
+                {knownPayers.map((p) => (
+                  <option key={p.id} value={p.name} />
+                ))}
+              </datalist>
+              {knownPayers.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs text-text/50">Suggestions:</span>
+                  {knownPayers.slice(0, 4).map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setPayerName(p.name)}
+                      className="rounded-lg border border-border bg-bg px-2 py-0.5 text-xs text-text hover:bg-border/40 transition-colors"
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </Field>
+
+          <Field id={`${baseId}-service`} label="Service details">
             <input
-              id={`${baseId}-payer`}
+              id={`${baseId}-service`}
               type="text"
-              required
-              aria-required="true"
-              aria-invalid={errors.payer ? true : undefined}
-              aria-describedby={errors.payer ? `${baseId}-payer-error` : undefined}
-              value={payerName}
-              onChange={(e) => setPayerName(e.target.value)}
+              placeholder="e.g. Consultation, Root canal, Dental implant"
+              value={serviceDetails}
+              onChange={(e) => setServiceDetails(e.target.value)}
               disabled={submitting}
               className={INPUT}
             />
@@ -254,6 +337,55 @@ export default function InvoiceFormModal({
               disabled={submitting}
             />
           </Field>
+
+          {!isEdit && (
+            <div className="rounded-xl border border-teal-500/30 bg-teal-500/5 p-4">
+              <label className="flex items-center gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isInstallmentPlan}
+                  onChange={(e) => setIsInstallmentPlan(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-teal-600 focus:ring-teal-500"
+                />
+                <span className="text-sm font-semibold text-text">
+                  Treatment installment plan (e.g. 10 months × ₹6,000)
+                </span>
+              </label>
+
+              {isInstallmentPlan && (
+                <div className="mt-3 space-y-3 pt-2 border-t border-teal-500/20">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <label htmlFor={`${baseId}-months`} className="text-xs font-medium text-text/80">
+                      Installment duration:
+                    </label>
+                    <select
+                      id={`${baseId}-months`}
+                      value={planMonths}
+                      onChange={(e) => setPlanMonths(Number(e.target.value))}
+                      className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-sm text-text"
+                    >
+                      <option value={3}>3 months</option>
+                      <option value={6}>6 months</option>
+                      <option value={10}>10 months (Dental standard)</option>
+                      <option value={12}>12 months</option>
+                      <option value={18}>18 months</option>
+                      <option value={24}>24 months</option>
+                    </select>
+                  </div>
+
+                  <div className="rounded-lg bg-teal-500/10 p-2.5 text-xs text-teal-900 dark:text-teal-200">
+                    <p className="font-semibold text-sm">
+                      ✨ Plan: {planMonths} months × ₹
+                      {(Number(amount) > 0 ? Math.round(Number(amount) / planMonths) : 0).toLocaleString('en-IN')}
+                    </p>
+                    <p className="mt-1 text-text/70">
+                      Creates all {planMonths} future scheduled invoices. The Cash Flow Forecast will automatically project this certain future income.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {isEdit && (
             <Field id={`${baseId}-paid`} label="Paid amount" error={errors.paidAmount}>

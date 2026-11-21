@@ -40,6 +40,11 @@ export const api = axios.create({
 interface ErrorBody {
   detail?: unknown;
   message?: unknown;
+  error?: {
+    code?: string;
+    message?: string;
+    details?: Array<{ msg?: string; loc?: string[] }>;
+  };
 }
 
 export class ApiError extends Error {
@@ -51,6 +56,16 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = window.localStorage.getItem('cliniccash.token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
 
 api.interceptors.response.use(
   (response) => response,
@@ -64,6 +79,27 @@ api.interceptors.response.use(
       message = body.detail;
     } else if (typeof body?.message === 'string') {
       message = body.message;
+    } else if (body?.error && typeof body.error === 'object') {
+      const errObj = body.error;
+      if (typeof errObj.message === 'string') {
+        if (Array.isArray(errObj.details) && errObj.details.length > 0) {
+          const detailMsgs = errObj.details
+            .map((d) => {
+              const loc = Array.isArray(d.loc)
+                ? d.loc.filter((x: any) => x !== 'body').join('.')
+                : '';
+              return loc ? `${loc}: ${d.msg}` : d.msg;
+            })
+            .filter(Boolean)
+            .join('; ');
+          message = detailMsgs ? `${errObj.message} (${detailMsgs})` : errObj.message;
+        } else {
+          message = errObj.message;
+        }
+      }
+    }
+    if (status === 401 && typeof window !== 'undefined') {
+      window.localStorage.removeItem('cliniccash.token');
     }
     return Promise.reject(new ApiError(message, status));
   },
@@ -72,28 +108,4 @@ api.interceptors.response.use(
 /** Unwraps the assumed { data: T } response envelope. */
 export function unwrap<T>(request: Promise<{ data: ApiResult<T> }>): Promise<T> {
   return request.then((res) => res.data.data);
-}
-
-/**
- * Runs a read request; falls back to mock data only in DEV when the endpoint
- * is unreachable (status 0) or missing (404). Mutations must not use this.
- */
-export async function withMockFallback<T>(
-  endpoint: string,
-  request: () => Promise<T>,
-  mock: () => T,
-): Promise<T> {
-  try {
-    return await request();
-  } catch (err) {
-    if (
-      import.meta.env.DEV &&
-      err instanceof ApiError &&
-      (err.status === 0 || err.status === 404)
-    ) {
-      console.warn(`[mock] ${endpoint} unavailable, using mock data`);
-      return mock();
-    }
-    throw err;
-  }
 }

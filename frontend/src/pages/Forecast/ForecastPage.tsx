@@ -4,6 +4,7 @@ import { getForecast } from '../../services/forecastService';
 import { ApiError } from '../../services/api';
 import type { ForecastResponse } from '../../types';
 import { ThemedSelect } from '../../components/ui/ThemedSelect';
+import ForecastRiskChart from '../../components/forecast/ForecastRiskChart';
 
 const SECONDARY_BTN =
   'inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border bg-bg px-4 text-sm font-medium text-text transition-colors hover:bg-border/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:opacity-60';
@@ -145,6 +146,9 @@ export default function ForecastPage() {
             </ul>
           </section>
         )}
+
+        {/* Visual Forecast Chart with Risk Zone shaded band */}
+        <ForecastRiskChart points={data.points} />
 
         <section className="overflow-x-auto rounded-2xl border border-border bg-card" aria-label="Forecast by day">
           <table className="w-full min-w-[720px] text-left text-sm">

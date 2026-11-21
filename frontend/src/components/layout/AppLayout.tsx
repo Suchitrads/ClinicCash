@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import { useAuth } from '../../contexts/AuthContext';
 
 const FADE_IN_STYLE = `
 @keyframes cc-fade-in {
@@ -19,6 +20,7 @@ const FADE_IN_STYLE = `
 `;
 
 export default function AppLayout() {
+  const { status, trialDaysLeft } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -87,6 +89,32 @@ export default function AppLayout() {
           onToggleSidebar={() => setCollapsed((c) => !c)}
           onOpenMenu={() => setMobileOpen(true)}
         />
+        {status === 'trialing' && (
+          <div className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-text md:mx-6 md:mt-6">
+            <span>
+              Free trial: {trialDaysLeft} {trialDaysLeft === 1 ? 'day' : 'days'} left. All features are unlocked.
+            </span>
+            <Link
+              to="/plans"
+              className="inline-flex min-h-[44px] items-center font-medium text-teal-600 dark:text-teal-400"
+            >
+              Subscribe
+            </Link>
+          </div>
+        )}
+        {status === 'expired' && (
+          <div className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-text md:mx-6 md:mt-6">
+            <span>
+              Your free trial has ended. Dashboard, Receivables and Invoices stay available. Subscribe to unlock everything.
+            </span>
+            <Link
+              to="/plans"
+              className="inline-flex min-h-[44px] items-center font-medium text-teal-600 dark:text-teal-400"
+            >
+              View plans
+            </Link>
+          </div>
+        )}
         <main className="min-w-0 animate-fade-in p-4 md:p-6">
           <Outlet />
         </main>

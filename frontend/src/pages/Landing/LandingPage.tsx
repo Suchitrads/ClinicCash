@@ -3,19 +3,22 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
 import ToothGrowthIllustration from '../../components/common/ToothGrowthIllustration';
+import { useAuth } from '../../contexts/AuthContext';
 
 const LEAVE_DURATION_MS = 400;
 
 export default function LandingPage() {
   const { theme, toggleTheme } = useTheme();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [leaving, setLeaving] = useState(false);
+  const target = isAuthenticated ? '/dashboard' : '/signup';
 
   useEffect(() => {
     if (!leaving) return;
-    const timer = window.setTimeout(() => navigate('/dashboard'), LEAVE_DURATION_MS);
+    const timer = window.setTimeout(() => navigate(target), LEAVE_DURATION_MS);
     return () => window.clearTimeout(timer);
-  }, [leaving, navigate]);
+  }, [leaving, navigate, target]);
 
   const handleEnter = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
@@ -57,12 +60,20 @@ export default function LandingPage() {
 
         <div className="w-full mt-8">
           <Link
-            to="/dashboard"
+            to={target}
             onClick={handleEnter}
             className="block w-full max-w-xs mx-auto min-h-[56px] py-4 rounded-2xl text-center text-xl font-medium text-teal-600 dark:text-teal-400 animate-[pulse_3s_ease-in-out_infinite] md:hover:scale-105 active:scale-95 transition-transform focus-visible:ring-2 focus-visible:ring-teal-500 outline-none"
           >
-            Tap to Enter →
+            {isAuthenticated ? 'Enter dashboard →' : 'Start 14-day free trial →'}
           </Link>
+          {!isAuthenticated && (
+            <Link
+              to="/signin"
+              className="mt-3 inline-flex items-center justify-center min-h-[44px] text-sm text-teal-600 dark:text-teal-400 focus-visible:ring-2 focus-visible:ring-teal-500 outline-none rounded-lg"
+            >
+              Already have an account? Sign in
+            </Link>
+          )}
         </div>
       </div>
 

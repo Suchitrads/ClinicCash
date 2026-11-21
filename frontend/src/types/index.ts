@@ -6,13 +6,14 @@ export interface Payer {
 export interface Invoice {
   id: string;
   payer: Payer;
-  patientName: string;
+  patientName: string | null;
+  itemLabel?: string;
   amount: number;
   paidAmount: number;
   dueDate: string; // ISO date
   claimStage: string;
   status: 'paid' | 'pending' | 'overdue' | 'promise_to_pay';
-  promiseDate?: string;
+  promiseDate?: string | null;
   overdueDays: number;
   nextAction: string;
 }
@@ -22,9 +23,29 @@ export interface Bill {
   name: string;
   amount: number;
   dueDate: string;
-  recurrence: 'none' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
+  recurrence: 'none' | 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
   deferrable: boolean;
   status: 'paid' | 'pending' | 'overdue';
+}
+
+export interface BillFundingSource {
+  name: string;
+  amount: number;
+  sourceType: string;
+}
+
+export interface BillFundingChain {
+  billId: string;
+  billName: string;
+  amount: number;
+  dueDate: string;
+  dueInDays: number;
+  sources: BillFundingSource[];
+  fundedAmount: number;
+  gapAmount: number;
+  status: 'fully_covered' | 'partially_covered' | 'gap';
+  narrative: string;
+  recommendation?: string | null;
 }
 
 export interface PaymentPlan {
@@ -92,8 +113,8 @@ export interface Reminder {
   tone: 'friendly' | 'firm' | 'final';
   language: 'en' | 'hi' | 'ta' | 'te' | 'bn' | 'mr';
   message: string;
-  upiLink?: string;
-  whatsappLink?: string;
+  upiLink?: string | null;
+  whatsappLink?: string | null;
 }
 
 export interface Alert {

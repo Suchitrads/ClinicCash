@@ -1,0 +1,17 @@
+[POST seed/reset] HTTP 200 :: {"data":{"payers":10,"invoices":10,"payment_history":60,"bills":5},"meta":null}
+[GET invoices] HTTP 200 :: {"data":[{"id":"INV-001","payer":{"id":"INS-1","name":"Star Health TPA"},"patientName":null,"amount":68000.0,"paidAmount":0.0,"dueDate":"2026-11-13","claimStage":"QUERY_RAISED","status":"overdue","promiseDate":null,"overdueDays":8,"nextAction":"Send a reminder today"},{"id":"INV-002","payer":{"id":"...
+[GET invoices search/sort] HTTP 200 :: {"data":[{"id":"INV-001","payer":{"id":"INS-1","name":"Star Health TPA"},"patientName":null,"amount":68000.0,"paidAmount":0.0,"dueDate":"2026-11-13","claimStage":"QUERY_RAISED","status":"overdue","promiseDate":null,"overdueDays":8,"nextAction":"Send a reminder today"},{"id":"INV-002","payer":{"id":"...
+FIRST_ID=INV-001 PAYER_ID=INS-1 PAYER_NAME=Star Health TPA
+[GET invoices/INV-001] HTTP 200 :: {"data":{"id":"INV-001","payer":{"id":"INS-1","name":"Star Health TPA"},"patientName":null,"amount":68000.0,"paidAmount":0.0,"dueDate":"2026-11-13","claimStage":"QUERY_RAISED","status":"overdue","promiseDate":null,"overdueDays":8,"nextAction":"Send a reminder today"},"meta":null}
+[POST invoices] HTTP 200 :: {"data":{"id":"INV-112D2EEF","payer":{"id":"INS-1","name":"Star Health TPA"},"patientName":null,"amount":1500.0,"paidAmount":0.0,"dueDate":"2026-12-01","claimStage":"pre-claim","status":"pending","promiseDate":null,"overdueDays":0,"nextAction":"Wait for payment"},"meta":null}
+NEW_ID=INV-112D2EEF
+[PUT invoices/new] HTTP 200 :: {"data":{"id":"INV-112D2EEF","payer":{"id":"INS-1","name":"Star Health TPA"},"patientName":null,"amount":1600.0,"paidAmount":0.0,"dueDate":"2026-12-01","claimStage":"pre-claim","status":"pending","promiseDate":null,"overdueDays":0,"nextAction":"Wait for payment"},"meta":null}
+[POST payments] HTTP 200 :: {"data":{"id":"61","invoiceId":"INV-112D2EEF","amount":100.0,"paidOn":"2026-11-21","method":"upi"},"meta":null}
+[POST promise-to-pay] HTTP 200 :: {"data":{"id":"INV-112D2EEF","payer":{"id":"INS-1","name":"Star Health TPA"},"patientName":null,"amount":1600.0,"paidAmount":100.0,"dueDate":"2026-12-01","claimStage":"pre-claim","status":"promise_to_pay","promiseDate":"2026-12-10","overdueDays":0,"nextAction":"Check on the promised date"},"meta":nu...
+[POST mark-paid] HTTP 200 :: {"data":{"id":"INV-112D2EEF","payer":{"id":"INS-1","name":"Star Health TPA"},"patientName":null,"amount":1600.0,"paidAmount":1600.0,"dueDate":"2026-12-01","claimStage":"pre-claim","status":"paid","promiseDate":"2026-12-10","overdueDays":0,"nextAction":"No action needed"},"meta":null}
+[POST payment-plans] HTTP 200 :: {"data":{"id":"1","name":"Star Health TPA - Claim batch","totalAmount":68000.0,"paidAmount":0.0,"remainingAmount":68000.0,"installmentAmount":1000.0,"frequency":"monthly","nextPaymentDate":"2026-12-01"},"meta":null}
+[GET payment-plans] HTTP 200 :: {"data":[{"id":"1","name":"Star Health TPA - Claim batch","totalAmount":68000.0,"paidAmount":0.0,"remainingAmount":68000.0,"installmentAmount":1000.0,"frequency":"monthly","nextPaymentDate":"2026-12-01"}],"meta":{"count":1}}
+[POST reminders/generate] HTTP 500 :: Internal Server Error
+[GET reminders] HTTP 200 :: {"data":[],"meta":{"count":0}}
+[DELETE invoices/INV-112D2EEF] HTTP 200 :: {"data":null,"meta":null}
+[GET invoices/does-not-exist] HTTP 404 :: {"detail":"Invoice not found","error":{"code":"http_404","message":"Invoice not found"}}

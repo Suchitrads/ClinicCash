@@ -1,6 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import AppLayout from './components/layout/AppLayout';
 import LandingPage from './pages/Landing/LandingPage';
+import SignInPage from './pages/Auth/SignInPage';
+import SignUpPage from './pages/Auth/SignUpPage';
+import PlansPage from './pages/Plans/PlansPage';
+import ModuleGate from './components/common/ModuleGate';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ReceivablesPage from './pages/Receivables/ReceivablesPage';
 import InvoicesPage from './pages/Invoices/InvoicesPage';
@@ -18,19 +22,22 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/signin" element={<SignInPage />} />
+      <Route path="/signup" element={<SignUpPage />} />
+      <Route path="/plans" element={<PlansPage />} />
       <Route path="/dashboard" element={<AppLayout />}>
-        <Route index element={<DashboardPage />} />
-        <Route path="receivables" element={<ReceivablesPage />} />
-        <Route path="invoices" element={<InvoicesPage />} />
-        <Route path="forecast" element={<ForecastPage />} />
-        <Route path="funding-chain" element={<FundingChainPage />} />
-        <Route path="gap-closer" element={<GapCloserPage />} />
-        <Route path="bills" element={<BillsPage />} />
-        <Route path="payment-plans" element={<PaymentPlansPage />} />
-        <Route path="reminders" element={<RemindersPage />} />
-        <Route path="alerts" element={<AlertsPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route index element={<ModuleGate module="dashboard"><DashboardPage /></ModuleGate>} />
+        <Route path="receivables" element={<ModuleGate module="receivables"><ReceivablesPage /></ModuleGate>} />
+        <Route path="invoices" element={<ModuleGate module="invoices"><InvoicesPage /></ModuleGate>} />
+        <Route path="forecast" element={<ModuleGate module="forecast"><ForecastPage /></ModuleGate>} />
+        <Route path="funding-chain" element={<ModuleGate module="funding-chain"><FundingChainPage /></ModuleGate>} />
+        <Route path="gap-closer" element={<ModuleGate module="gap-closer"><GapCloserPage /></ModuleGate>} />
+        <Route path="bills" element={<ModuleGate module="bills"><BillsPage /></ModuleGate>} />
+        <Route path="payment-plans" element={<ModuleGate module="payment-plans"><PaymentPlansPage /></ModuleGate>} />
+        <Route path="reminders" element={<ModuleGate module="reminders"><RemindersPage /></ModuleGate>} />
+        <Route path="alerts" element={<ModuleGate module="alerts"><AlertsPage /></ModuleGate>} />
+        <Route path="reports" element={<ModuleGate module="reports"><ReportsPage /></ModuleGate>} />
+        <Route path="settings" element={<ModuleGate module="settings"><SettingsPage /></ModuleGate>} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -235,7 +235,23 @@ export default function ReceivablesPage() {
                     <div className="text-xs text-text/60">{inv.patientName}</div>
                   </td>
                   <td className="px-4 py-3 text-text">{inv.payer.name}</td>
-                  <td className="px-4 py-3 font-medium text-text">{formatMoney(inv.amount)}</td>
+                  <td className="px-4 py-3">
+                    {inv.paidAmount > 0 ? (
+                      <div>
+                        <div className="font-semibold text-text">
+                          {formatMoney(Math.max(0, inv.amount - inv.paidAmount))}
+                        </div>
+                        <div className="text-xs text-text/60">
+                          Total: {formatMoney(inv.amount)} •{' '}
+                          <span className="text-teal-600 font-medium dark:text-teal-400">
+                            Paid: {formatMoney(inv.paidAmount)}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="font-medium text-text">{formatMoney(inv.amount)}</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-text">{formatDate(inv.dueDate)}</td>
                   <td className="px-4 py-3 text-text">{overdueLabel(inv.overdueDays)}</td>
                   <td className="px-4 py-3">
@@ -272,8 +288,21 @@ export default function ReceivablesPage() {
                   <dd className="text-text">{inv.payer.name}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-text/60">Amount</dt>
-                  <dd className="font-medium text-text">{formatMoney(inv.amount)}</dd>
+                  <dt className="text-xs text-text/60">Amount / Balance</dt>
+                  <dd className="font-medium text-text">
+                    {inv.paidAmount > 0 ? (
+                      <div>
+                        <div className="font-semibold text-text">
+                          {formatMoney(Math.max(0, inv.amount - inv.paidAmount))}
+                        </div>
+                        <div className="text-xs text-text/60">
+                          Total {formatMoney(inv.amount)} • Paid {formatMoney(inv.paidAmount)}
+                        </div>
+                      </div>
+                    ) : (
+                      formatMoney(inv.amount)
+                    )}
+                  </dd>
                 </div>
                 <div>
                   <dt className="text-xs text-text/60">Due date</dt>

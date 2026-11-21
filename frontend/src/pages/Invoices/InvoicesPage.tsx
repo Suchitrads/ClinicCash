@@ -266,7 +266,7 @@ export default function InvoicesPage() {
                     <div className="text-text">{inv.payer.name}</div>
                     <div className="text-xs text-text/60">{inv.patientName}</div>
                   </td>
-                  <td className="px-4 py-3 text-text">{inv.nextAction}</td>
+                  <td className="px-4 py-3 text-text">{inv.itemLabel || inv.nextAction}</td>
                   <td className="px-4 py-3">
                     <AmountCell invoice={inv} />
                   </td>
@@ -307,7 +307,7 @@ export default function InvoicesPage() {
               <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
                 <div className="col-span-2">
                   <dt className="text-xs text-text/60">Service details</dt>
-                  <dd className="text-text">{inv.nextAction}</dd>
+                  <dd className="text-text">{inv.itemLabel || inv.nextAction}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-text/60">Amount</dt>

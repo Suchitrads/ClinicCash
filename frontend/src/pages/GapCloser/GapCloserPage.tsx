@@ -69,13 +69,23 @@ interface GapActionCardProps {
 }
 
 function GapActionCard({ action, running, error, onRun }: GapActionCardProps) {
+  const isDeferral = action.id.startsWith('gap-defer-');
   return (
     <article className="rounded-2xl border border-border bg-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="font-semibold text-text">{action.title}</h2>
-          <div className="mt-1 text-lg font-semibold text-text">
-            {formatMoney(action.estimatedAmount)}
+          <h2 className="text-base font-bold text-text">{action.title}</h2>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span
+              className={`inline-flex items-center rounded-lg px-3 py-1 text-sm font-bold ${
+                isDeferral
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-500/20 dark:text-amber-300'
+                  : 'bg-teal-100 text-teal-900 dark:bg-teal-500/20 dark:text-teal-300'
+              }`}
+            >
+              {isDeferral ? 'Moves out: ' : 'Closes deficit: +'}
+              {formatMoney(action.estimatedAmount)}
+            </span>
           </div>
         </div>
         <span
@@ -87,16 +97,16 @@ function GapActionCard({ action, running, error, onRun }: GapActionCardProps) {
       <dl className="mt-3 space-y-2 text-sm">
         <div>
           <dt className="text-xs text-text/60">Impact</dt>
-          <dd className="text-text">{action.impact}</dd>
+          <dd className="font-medium text-text">{action.impact}</dd>
         </div>
         <div>
           <dt className="text-xs text-text/60">Explanation</dt>
-          <dd className="text-text">{action.explanation}</dd>
+          <dd className="text-text/80">{action.explanation}</dd>
         </div>
       </dl>
       <div className="mt-4">
         <button type="button" onClick={onRun} disabled={running} className={RUN_BTN}>
-          {running ? 'Running…' : 'Run action'}
+          {running ? 'Executing action…' : isDeferral ? 'Defer bill 7 days' : 'Send payment reminder'}
         </button>
       </div>
       {error && (

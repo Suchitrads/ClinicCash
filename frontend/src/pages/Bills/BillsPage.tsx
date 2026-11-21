@@ -1,10 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { ApiError } from '../../services/api';
-import { createBill, listBills, updateBill } from '../../services/billService';
+import { createBill, deleteBill, getBillFundingChain, listBills, updateBill } from '../../services/billService';
 import type { BillInput, BillUpdate } from '../../services/billService';
-import type { Bill } from '../../types';
+import type { Bill, BillFundingChain } from '../../types';
 import { ThemedSelect } from '../../components/ui/ThemedSelect';
 
 const BASE =
@@ -19,7 +19,7 @@ const PRIMARY =
 const INPUT =
   'mt-1 min-h-[44px] w-full rounded-xl border border-border bg-card px-3 text-sm text-text placeholder:text-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:opacity-60';
 
-const COLUMNS = ['Bill', 'Amount', 'Due date', 'Recurrence', 'Deferrable', 'Status', 'Actions'];
+const COLUMNS = ['Bill', 'Amount', 'Due date', 'Recurrence', 'Funding chain', 'Status', 'Actions'];
 
 const RECURRENCE_OPTIONS: { value: Bill['recurrence']; label: string }[] = [
   { value: 'none', label: 'None' },
@@ -27,6 +27,7 @@ const RECURRENCE_OPTIONS: { value: Bill['recurrence']; label: string }[] = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
   { value: 'yearly', label: 'Yearly' },
+  { value: 'custom', label: 'Custom' },
 ];
 
 const STATUS_OPTIONS: { value: Bill['status']; label: string }[] = [
@@ -335,14 +336,24 @@ export default function BillsPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [modal, setModal] = useState<ModalState | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [chains, setChains] = useState<Record<string, BillFundingChain>>({});
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    listBills()
-      .then((data) => {
-        if (!cancelled) setBills(data);
+    Promise.all([listBills(), getBillFundingChain().catch(() => [])])
+      .then(([data, chainList]) => {
+        if (!cancelled) {
+          setBills(data);
+          const map: Record<string, BillFundingChain> = {};
+          chainList.forEach((c) => {
+            map[c.billId] = c;
+          });
+          setChains(map);
+        }
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(messageFrom(err));
@@ -362,6 +373,19 @@ export default function BillsPage() {
   function handleSaved() {
     setModal(null);
     reload();
+  }
+
+  async function handleDeleteBill(id: string) {
+    setDeleting(true);
+    try {
+      await deleteBill(id);
+      setConfirmDeleteId(null);
+      reload();
+    } catch (err: unknown) {
+      setError(messageFrom(err));
+    } finally {
+      setDeleting(false);
+    }
   }
 
   let body: ReactNode;
@@ -408,20 +432,77 @@ export default function BillsPage() {
                   <td className="px-4 py-3 text-text">
                     {labelFor(RECURRENCE_OPTIONS, bill.recurrence)}
                   </td>
-                  <td className="px-4 py-3 text-text">{bill.deferrable ? 'Yes' : 'No'}</td>
+                  <td className="px-4 py-3">
+                    {chains[bill.id] ? (
+                      chains[bill.id].status === 'fully_covered' ? (
+                        <span
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-teal-600 dark:text-teal-400"
+                          title={chains[bill.id].narrative}
+                        >
+                          ✓ Covered (gap ₹0)
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400"
+                          title={chains[bill.id].narrative}
+                        >
+                          ⚠️ Gap: {formatMoney(chains[bill.id].gapAmount)}
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-xs text-text/50">
+                        {bill.deferrable ? 'Deferrable' : 'Standard'}
+                      </span>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <StatusText status={bill.status} />
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setModal({ mode: 'edit', bill })}
-                      className={ICON_BTN}
-                      aria-label={`Edit ${bill.name}`}
-                      title="Edit"
-                    >
-                      <Pencil className="h-5 w-5" aria-hidden="true" />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setModal({ mode: 'edit', bill })}
+                        className={ICON_BTN}
+                        aria-label={`Edit ${bill.name}`}
+                        title="Edit"
+                      >
+                        <Pencil className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(bill.id)}
+                        disabled={deleting}
+                        className={`${ICON_BTN} text-red-600 hover:text-red-700 dark:text-red-400`}
+                        aria-label={`Delete ${bill.name}`}
+                        title="Delete"
+                      >
+                        <Trash2 className="h-5 w-5" aria-hidden="true" />
+                      </button>
+                    </div>
+                    {confirmDeleteId === bill.id && (
+                      <div className="absolute z-10 mt-1 rounded-xl border border-border bg-card p-3 shadow-lg">
+                        <p className="text-xs text-text mb-2">Delete {bill.name}?</p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(null)}
+                            disabled={deleting}
+                            className="rounded-lg border border-border px-2 py-1 text-xs text-text hover:bg-border/40"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteBill(bill.id)}
+                            disabled={deleting}
+                            className="rounded-lg bg-red-600 px-2 py-1 text-xs text-white hover:bg-red-700"
+                          >
+                            {deleting ? 'Deleting…' : 'Delete'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -450,8 +531,22 @@ export default function BillsPage() {
                   <dd className="text-text">{labelFor(RECURRENCE_OPTIONS, bill.recurrence)}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-text/60">Deferrable</dt>
-                  <dd className="text-text">{bill.deferrable ? 'Yes' : 'No'}</dd>
+                  <dt className="text-xs text-text/60">Funding chain</dt>
+                  <dd className="text-text">
+                    {chains[bill.id] ? (
+                      chains[bill.id].status === 'fully_covered' ? (
+                        <span className="font-semibold text-teal-600 dark:text-teal-400">
+                          ✓ Covered
+                        </span>
+                      ) : (
+                        <span className="font-semibold text-amber-600 dark:text-amber-400">
+                          ⚠️ Gap: {formatMoney(chains[bill.id].gapAmount)}
+                        </span>
+                      )
+                    ) : (
+                      bill.deferrable ? 'Deferrable' : 'Standard'
+                    )}
+                  </dd>
                 </div>
               </dl>
               <div className="mt-4">

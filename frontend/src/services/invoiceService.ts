@@ -2,14 +2,12 @@ import type {
   ApiResult,
   DashboardSummary,
   Invoice,
+  Payer,
   Payment,
   PaymentPlan,
   Reminder,
 } from '../types';
-import { api, unwrap, withMockFallback } from './api';
-import { mockDashboardSummary } from './mocks/dashboard';
-import { mockInvoices, mockPaymentPlans } from './mocks/invoices';
-import { mockReminders } from './mocks/reminders';
+import { api, unwrap } from './api';
 
 export interface InvoiceQuery {
   search?: string;
@@ -19,7 +17,10 @@ export interface InvoiceQuery {
   sortDir?: 'asc' | 'desc';
 }
 
-export type InvoiceInput = Omit<Invoice, 'id'>;
+export type InvoiceInput = Omit<Invoice, 'id'> & {
+  isInstallmentPlan?: boolean;
+  planMonths?: number;
+};
 export type InvoiceUpdate = Partial<Omit<Invoice, 'id'>>;
 export type PaymentInput = Omit<Payment, 'id' | 'invoiceId'>;
 export interface InstallmentPlanInput {
@@ -30,71 +31,47 @@ export interface InstallmentPlanInput {
 export type ReminderInput = Pick<Reminder, 'invoiceId' | 'tone' | 'language'>;
 
 export async function getDashboardSummary(): Promise<DashboardSummary> {
-  return withMockFallback(
-    'GET /dashboard/summary',
-    () => unwrap(api.get<ApiResult<DashboardSummary>>('/dashboard/summary')),
-    () => mockDashboardSummary,
-  );
+  return unwrap(api.get<ApiResult<DashboardSummary>>('/dashboard/summary'));
 }
 
 export async function listInvoices(params?: InvoiceQuery): Promise<Invoice[]> {
-  return withMockFallback(
-    'GET /invoices',
-    () => unwrap(api.get<ApiResult<Invoice[]>>('/invoices', { params })),
-    () => mockInvoices,
-  );
+  return unwrap(api.get<ApiResult<Invoice[]>>('/invoices', { params }));
+}
+
+export async function listPayers(): Promise<Payer[]> {
+  return unwrap(api.get<ApiResult<Payer[]>>('/payers'));
 }
 
 export async function getInvoice(id: string): Promise<Invoice> {
-  return withMockFallback(
-    `GET /invoices/${id}`,
-    () => unwrap(api.get<ApiResult<Invoice>>(`/invoices/${id}`)),
-    () => mockInvoices.find((inv) => inv.id === id) ?? mockInvoices[0],
-  );
+  return unwrap(api.get<ApiResult<Invoice>>(`/invoices/${id}`));
 }
 
-/** Mutation: no mock fallback. */
 export async function createInvoice(input: InvoiceInput): Promise<Invoice> {
   return unwrap(api.post<ApiResult<Invoice>>('/invoices', input));
 }
 
-/** Mutation: no mock fallback. */
 export async function updateInvoice(id: string, input: InvoiceUpdate): Promise<Invoice> {
   return unwrap(api.put<ApiResult<Invoice>>(`/invoices/${id}`, input));
 }
 
-/** Removes the invoice; on mock fallback it is spliced out of the shared mock list. */
 export async function deleteInvoice(id: string): Promise<void> {
-  return withMockFallback(
-    `DELETE /invoices/${id}`,
-    async () => {
-      await api.delete(`/invoices/${id}`);
-    },
-    () => {
-      const index = mockInvoices.findIndex((inv) => inv.id === id);
-      if (index !== -1) mockInvoices.splice(index, 1);
-    },
-  );
+  await api.delete(`/invoices/${id}`);
 }
 
-/** Mutation: no mock fallback. */
 export async function recordPayment(invoiceId: string, input: PaymentInput): Promise<Payment> {
   return unwrap(api.post<ApiResult<Payment>>(`/invoices/${invoiceId}/payments`, input));
 }
 
-/** Mutation: no mock fallback. */
 export async function markInvoicePaid(invoiceId: string): Promise<Invoice> {
   return unwrap(api.post<ApiResult<Invoice>>(`/invoices/${invoiceId}/mark-paid`));
 }
 
-/** Mutation: no mock fallback. */
 export async function setPromiseToPay(invoiceId: string, promiseDate: string): Promise<Invoice> {
   return unwrap(
     api.post<ApiResult<Invoice>>(`/invoices/${invoiceId}/promise-to-pay`, { promiseDate }),
   );
 }
 
-/** Mutation: no mock fallback. */
 export async function createInstallmentPlan(
   invoiceId: string,
   input: InstallmentPlanInput,
@@ -105,22 +82,13 @@ export async function createInstallmentPlan(
 }
 
 export async function listPaymentPlans(): Promise<PaymentPlan[]> {
-  return withMockFallback(
-    'GET /payment-plans',
-    () => unwrap(api.get<ApiResult<PaymentPlan[]>>('/payment-plans')),
-    () => mockPaymentPlans,
-  );
+  return unwrap(api.get<ApiResult<PaymentPlan[]>>('/payment-plans'));
 }
 
 export async function listReminders(): Promise<Reminder[]> {
-  return withMockFallback(
-    'GET /reminders',
-    () => unwrap(api.get<ApiResult<Reminder[]>>('/reminders')),
-    () => mockReminders,
-  );
+  return unwrap(api.get<ApiResult<Reminder[]>>('/reminders'));
 }
 
-/** Mutation: no mock fallback. */
 export async function generateReminder(input: ReminderInput): Promise<Reminder> {
   return unwrap(api.post<ApiResult<Reminder>>('/reminders/generate', input));
 }
