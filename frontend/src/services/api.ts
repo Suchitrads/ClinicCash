@@ -32,8 +32,22 @@
 import axios, { type AxiosError } from 'axios';
 import type { ApiResult } from '../types';
 
+function getBaseUrl(): string {
+  const envUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  if (!envUrl) {
+    return 'http://localhost:8000/api/v1';
+  }
+  // Remove any trailing slashes
+  const clean = envUrl.replace(/\/+$/, '');
+  // If user provided origin like https://...onrender.com without /api/v1, ensure /api/v1 is appended
+  if (!clean.endsWith('/api/v1')) {
+    return `${clean}/api/v1`;
+  }
+  return clean;
+}
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
+  baseURL: getBaseUrl(),
   timeout: 15000,
 });
 

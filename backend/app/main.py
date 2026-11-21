@@ -42,15 +42,24 @@ def root():
 
 app.include_router(health.router)
 init_db()
-app.include_router(admin.router, prefix=settings.api_prefix)
-app.include_router(invoices.router, prefix=settings.api_prefix)
-app.include_router(dashboard.router, prefix=settings.api_prefix)
-app.include_router(payment_plans.router, prefix=settings.api_prefix)
-app.include_router(reminders.router, prefix=settings.api_prefix)
-app.include_router(auth.router, prefix=settings.api_prefix)
-app.include_router(bills.router, prefix=settings.api_prefix)
-app.include_router(clinic_settings.router, prefix=settings.api_prefix)
-app.include_router(forecast.router, prefix=settings.api_prefix)
-app.include_router(gap_closer.router, prefix=settings.api_prefix)
-app.include_router(alerts.router, prefix=settings.api_prefix)
-app.include_router(reports.router, prefix=settings.api_prefix)
+
+routers_to_mount = [
+    admin.router,
+    invoices.router,
+    dashboard.router,
+    payment_plans.router,
+    reminders.router,
+    auth.router,
+    bills.router,
+    clinic_settings.router,
+    forecast.router,
+    gap_closer.router,
+    alerts.router,
+    reports.router,
+]
+
+for r in routers_to_mount:
+    # Mount at /api/v1 (standard)
+    app.include_router(r, prefix=settings.api_prefix)
+    # Also mount at root so requests missing /api/v1 never 404
+    app.include_router(r)
