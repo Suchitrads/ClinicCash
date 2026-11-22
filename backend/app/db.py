@@ -14,7 +14,7 @@ def get_database_url() -> str:
 db_url = get_database_url()
 is_sqlite = db_url.startswith("sqlite")
 connect_args = {"check_same_thread": False} if is_sqlite else {}
-engine = create_engine(db_url, connect_args=connect_args)
+engine = create_engine(db_url, connect_args=connect_args, pool_pre_ping=not is_sqlite)
 
 
 def init_db() -> None:
