@@ -106,7 +106,7 @@ export default function AppLayout() {
         {status === 'expired' && (
           <div className="mx-4 mt-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-text md:mx-6 md:mt-6">
             <span>
-              Your free trial has ended. Dashboard, Receivables and Invoices stay available. Subscribe to unlock everything.
+              Your free trial has ended. Dashboard, Receivables, Invoices, Bills, Payment Plans, Reports & Analytics, and Settings stay available on Free. Subscribe to unlock Pro.
             </span>
             <Link
               to="/plans"

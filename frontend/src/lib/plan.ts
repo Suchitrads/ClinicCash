@@ -1,6 +1,14 @@
 export const TRIAL_DAYS = 14;
 
-export const BASIC_MODULES = ['dashboard', 'receivables', 'invoices'] as const;
+export const BASIC_MODULES = [
+  'dashboard',
+  'receivables',
+  'invoices',
+  'bills',
+  'payment-plans',
+  'reports',
+  'settings',
+] as const;
 
 export type ModuleKey =
   | 'dashboard'

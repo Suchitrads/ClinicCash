@@ -5,9 +5,9 @@ import { Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { TRIAL_DAYS, type Plan } from '../../lib/plan';
 
-// TODO: pricing is to be confirmed. Keep this placeholder until a price is decided.
-const PRO_PRICE = '₹ — / month';
 const FREE_PRICE = '₹0 / month';
+const PRO_MONTHLY_PRICE = '₹150 / month';
+const PRO_YEARLY_PRICE = '₹16,000 / year';
 
 const PRIMARY_BTN =
   'inline-flex min-h-[44px] w-full items-center justify-center rounded-xl bg-teal-600 px-4 text-sm font-medium text-white transition-colors hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 disabled:opacity-60 dark:bg-teal-500 dark:hover:bg-teal-400';
@@ -151,27 +151,32 @@ function PlanCard({ title, price, tagline, features, highlight = false, children
   );
 }
 
-const FREE_FEATURES = ['Dashboard', 'Receivables', 'Invoices'];
-
-const PRO_FEATURES = [
-  'Dashboard',
-  'Receivables',
-  'Invoices',
-  'Forecast',
-  'Funding Chain',
-  'Gap Closer',
+const FREE_FEATURES = [
+  'Dashboard Overview',
+  'Receivables Tracking',
+  'Invoices & Billing',
   'Bills & Expenses',
   'Payment Plans',
-  'Reminders',
-  'Alerts',
   'Reports & Analytics',
-  'Settings',
+  'Clinic Settings',
+];
+
+const PRO_FEATURES = [
+  'All 7 Free Modules Included',
+  '30/60/90-Day Cash Flow Forecast',
+  'Bill Funding Chain (Coverage Mapping)',
+  'Gap Closer (Deficit Recovery Actions)',
+  'Automated Reminders (WhatsApp & UPI Links)',
+  'Real-Time Shortage & Delinquency Alerts',
+  'ClinicCash AI Daily Financial Advisor',
+  'Priority 24/7 Clinical Support',
 ];
 
 export default function PlansPage() {
   const navigate = useNavigate();
   const { status, trialDaysLeft, startSubscription } = useAuth();
 
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [showPayment, setShowPayment] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>('card');
   const [card, setCard] = useState<CardForm>({ name: '', number: '', expiry: '', cvv: '' });
@@ -247,7 +252,7 @@ export default function PlansPage() {
         <h1 className="text-2xl font-semibold text-teal-600 dark:text-teal-400">Choose your plan</h1>
         <p className="text-sm text-text/60">
           Your {TRIAL_DAYS}-day free trial gives you full access to every module. When the trial ends, subscribe
-          to Pro to keep full access, or continue on Free with the basic modules.
+          to Pro to keep full access, or continue on Free with the essential clinic management modules.
         </p>
       </header>
 
@@ -260,7 +265,7 @@ export default function PlansPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <PlanCard title="Free" price={FREE_PRICE} tagline="Basic modules only" features={FREE_FEATURES}>
+        <PlanCard title="Free" price={FREE_PRICE} tagline="Essential modules included permanently" features={FREE_FEATURES}>
           <button
             type="button"
             disabled={submitting}
@@ -274,10 +279,38 @@ export default function PlansPage() {
         <PlanCard
           title="Pro"
           highlight
-          price={PRO_PRICE}
-          tagline="Full access to all modules"
+          price={billingCycle === 'monthly' ? PRO_MONTHLY_PRICE : PRO_YEARLY_PRICE}
+          tagline={
+            billingCycle === 'monthly'
+              ? 'Billed monthly at ₹150 / month'
+              : 'Billed annually at ₹16,000 / year (1-Year Plan)'
+          }
           features={PRO_FEATURES}
         >
+          <div className="mb-4 flex rounded-xl border border-border bg-bg p-1">
+            <button
+              type="button"
+              onClick={() => setBillingCycle('monthly')}
+              className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
+                billingCycle === 'monthly'
+                  ? 'bg-teal-600 text-white shadow-sm dark:bg-teal-500'
+                  : 'text-text/70 hover:text-text'
+              }`}
+            >
+              Monthly (₹150)
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle('yearly')}
+              className={`flex-1 rounded-lg py-1.5 text-xs font-semibold transition-colors ${
+                billingCycle === 'yearly'
+                  ? 'bg-teal-600 text-white shadow-sm dark:bg-teal-500'
+                  : 'text-text/70 hover:text-text'
+              }`}
+            >
+              1 Year (₹16,000)
+            </button>
+          </div>
           <button
             type="button"
             disabled={submitting}
@@ -285,7 +318,7 @@ export default function PlansPage() {
             onClick={() => setShowPayment(true)}
             className={PRIMARY_BTN}
           >
-            Subscribe to Pro
+            {billingCycle === 'monthly' ? 'Subscribe to Pro (₹150 / month)' : 'Subscribe to Pro (₹16,000 / year)'}
           </button>
         </PlanCard>
       </div>
@@ -298,9 +331,14 @@ export default function PlansPage() {
 
       {showPayment && (
         <section className={PANEL} aria-labelledby="payment-heading">
-          <h2 id="payment-heading" className="text-lg font-semibold text-teal-600 dark:text-teal-400">
-            Payment details
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <h2 id="payment-heading" className="text-lg font-semibold text-teal-600 dark:text-teal-400">
+              Payment details
+            </h2>
+            <span className="rounded-full bg-teal-600/10 px-3 py-1 text-xs font-semibold text-teal-600 dark:text-teal-400">
+              Selected: Pro ({billingCycle === 'monthly' ? 'Monthly — ₹150' : '1 Year — ₹16,000'})
+            </span>
+          </div>
           <p className="mt-2 rounded-xl border border-border bg-bg px-3 py-2 text-sm text-text">
             Payments are not connected yet. This screen collects details in the form only and does not charge
             anyone.
@@ -399,7 +437,7 @@ export default function PlansPage() {
             )}
 
             <button type="submit" disabled={submitting} className={`${PRIMARY_BTN} sm:w-auto`}>
-              Pay and start Pro
+              Pay {billingCycle === 'monthly' ? '₹150' : '₹16,000'} & Start Pro
             </button>
           </form>
         </section>

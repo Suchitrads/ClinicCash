@@ -36,8 +36,7 @@ export default function ModuleGate({ module, children }: ModuleGateProps) {
         <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 sm:p-8 text-center shadow-sm">
           <h2 className="text-xl font-semibold text-text">Your free trial has ended</h2>
           <p className="mt-3 text-sm text-text/70">
-            Upgrade to Pro to use {MODULE_LABELS[module]}. Dashboard, Receivables and Invoices stay
-            available on Free.
+            Upgrade to Pro to use {MODULE_LABELS[module]}. Dashboard, Receivables, Invoices, Bills, Payment Plans, Reports & Analytics, and Settings stay available on Free.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
