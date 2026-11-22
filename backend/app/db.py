@@ -4,13 +4,27 @@ from sqlmodel import Session, SQLModel, create_engine
 from app.config import settings
 from app.models import entities  # noqa: F401  (registers the tables)
 
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-engine = create_engine(settings.database_url, connect_args=connect_args)
+def get_database_url() -> str:
+    url = settings.database_url
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    return url
+
+
+db_url = get_database_url()
+is_sqlite = db_url.startswith("sqlite")
+connect_args = {"check_same_thread": False} if is_sqlite else {}
+engine = create_engine(db_url, connect_args=connect_args)
 
 
 def init_db() -> None:
     SQLModel.metadata.create_all(engine)
-    ensure_columns()
+    if is_sqlite:
+        ensure_columns()
+    # Seed default clinic settings and sample data if database is brand new
+    with Session(engine) as session:
+        from app.services.seed import seed_if_empty
+        seed_if_empty(session)
 
 
 def _all_subclasses(cls) -> list:

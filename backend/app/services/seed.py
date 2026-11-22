@@ -106,3 +106,12 @@ def reset_and_seed(session: Session) -> dict:
     session.commit()
     return {"payers": len(PAYERS), "invoices": len(INVOICES),
             "payment_history": history_rows, "bills": len(BILLS)}
+
+
+def seed_if_empty(session: Session) -> bool:
+    """Seeds default clinic settings and sample data if ClinicSettings table is empty."""
+    from sqlmodel import select
+    if session.exec(select(ClinicSettings)).first() is not None:
+        return False
+    reset_and_seed(session)
+    return True

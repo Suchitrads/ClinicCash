@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import AuthLayout from './AuthLayout';
@@ -24,6 +25,8 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -101,19 +104,30 @@ export default function SignUpPage() {
           <label htmlFor="signup-password" className="block text-sm font-medium text-text">
             Password
           </label>
-          <input
-            id="signup-password"
-            name="password"
-            type="password"
-            required
-            minLength={MIN_PASSWORD_LENGTH}
-            autoComplete="new-password"
-            aria-invalid={passwordTooShort ? true : undefined}
-            aria-describedby={passwordTooShort ? 'signup-password-hint' : undefined}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={INPUT}
-          />
+          <div className="relative">
+            <input
+              id="signup-password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              required
+              minLength={MIN_PASSWORD_LENGTH}
+              autoComplete="new-password"
+              aria-invalid={passwordTooShort ? true : undefined}
+              aria-describedby={passwordTooShort ? 'signup-password-hint' : undefined}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${INPUT} pr-11`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text/50 hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded p-1 transition-colors"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              title={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
           {passwordTooShort && (
             <p id="signup-password-hint" className="mt-1 text-xs text-red-700 dark:text-red-300">
               {passwordTooShort}
@@ -125,18 +139,29 @@ export default function SignUpPage() {
           <label htmlFor="signup-confirm" className="block text-sm font-medium text-text">
             Confirm password
           </label>
-          <input
-            id="signup-confirm"
-            name="confirmPassword"
-            type="password"
-            required
-            autoComplete="new-password"
-            aria-invalid={passwordMismatch ? true : undefined}
-            aria-describedby={passwordMismatch ? 'signup-confirm-hint' : undefined}
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className={INPUT}
-          />
+          <div className="relative">
+            <input
+              id="signup-confirm"
+              name="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              required
+              autoComplete="new-password"
+              aria-invalid={passwordMismatch ? true : undefined}
+              aria-describedby={passwordMismatch ? 'signup-confirm-hint' : undefined}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className={`${INPUT} pr-11`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((prev) => !prev)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text/50 hover:text-text focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 rounded p-1 transition-colors"
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              title={showConfirmPassword ? 'Hide password' : 'Show password'}
+            >
+              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            </button>
+          </div>
           {passwordMismatch && (
             <p id="signup-confirm-hint" className="mt-1 text-xs text-red-700 dark:text-red-300">
               {passwordMismatch}
