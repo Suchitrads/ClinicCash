@@ -23,6 +23,8 @@ export default function AIChatWidget() {
   const [briefingOpen, setBriefingOpen] = useState(true);
   const [briefing, setBriefing] = useState<DailyBriefing | null>(null);
   const [loadingBriefing, setLoadingBriefing] = useState(false);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const [input, setInput] = useState('');
   const [loadingReply, setLoadingReply] = useState(false);
@@ -57,18 +59,59 @@ export default function AIChatWidget() {
     if (isOpen) {
       inputRef.current?.focus();
       if (!briefing && !loadingBriefing) {
-        fetchBriefing();
+        fetchBriefing(false);
       }
     }
   }, [isOpen]);
 
-  const fetchBriefing = async () => {
+  const fetchBriefing = async (isManual = false) => {
     setLoadingBriefing(true);
+    setBriefingError(null);
+    if (isManual) {
+      setBriefingOpen(true);
+    }
     try {
       const data = await aiService.getDailyBriefing();
       setBriefing(data);
-    } catch (err) {
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastUpdated(nowStr);
+
+      if (isManual) {
+        const topAction =
+          data.urgent_actions && data.urgent_actions.length > 0
+            ? `\n\n🎯 **Today's Priority Action:** ${data.urgent_actions[0].title} — ${data.urgent_actions[0].impact}`
+            : '';
+        const updateMsg: MessageItem = {
+          id: `update-${Date.now()}`,
+          role: 'assistant',
+          content:
+            `🔄 **Daily Briefing Refreshed** (${nowStr})\n\n` +
+            `• **Opening Cash:** ₹${data.cash_balance.toLocaleString('en-IN')}\n` +
+            `• **Overdue Inflows:** ₹${data.overdue_total.toLocaleString('en-IN')} (${data.overdue_count} invoices)\n` +
+            `• **Upcoming 7-Day Bills:** ₹${data.bills_due_soon_total.toLocaleString('en-IN')}\n` +
+            `• **Health Score:** ${data.health_score}/100 (${data.health_label})` +
+            topAction,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          suggestions: ['How to Close Cash Gap 💡', 'Top Overdue Invoices 💰', 'Upcoming Bills 📅'],
+        };
+        setMessages((prev) => [...prev, updateMsg]);
+      }
+    } catch (err: any) {
       console.error('Failed to load daily briefing:', err);
+      const errMsg = err?.message || 'Could not connect to daily briefing service.';
+      setBriefingError(errMsg);
+      if (isManual) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: 'assistant',
+            content: `⚠️ **Failed to refresh daily briefing:** ${errMsg}\n\nPlease verify backend status and try again.`,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            suggestions: ['Retry Daily Briefing 🌤️', 'Top Overdue Invoices 💰'],
+          },
+        ]);
+      }
     } finally {
       setLoadingBriefing(false);
     }
@@ -268,7 +311,8 @@ export default function AIChatWidget() {
 
             <div className="flex items-center gap-1">
               <button
-                onClick={fetchBriefing}
+                type="button"
+                onClick={() => fetchBriefing(true)}
                 disabled={loadingBriefing}
                 className="rounded-xl p-2 text-white/80 hover:bg-white/15 hover:text-white transition-colors"
                 title="Refresh Daily Briefing"
@@ -276,6 +320,7 @@ export default function AIChatWidget() {
                 <RefreshCw className={`h-4 w-4 ${loadingBriefing ? 'animate-spin' : ''}`} />
               </button>
               <button
+                type="button"
                 onClick={() => setIsOpen(false)}
                 className="rounded-xl p-2 text-white/80 hover:bg-white/15 hover:text-white transition-colors"
                 title="Close AI Assistant"
@@ -288,6 +333,7 @@ export default function AIChatWidget() {
           {/* Collapsible Daily Briefing Widget */}
           <div className="border-b border-border bg-card/60 backdrop-blur-sm">
             <button
+              type="button"
               onClick={() => setBriefingOpen((prev) => !prev)}
               className="flex w-full items-center justify-between px-4 py-2.5 text-xs font-semibold text-text/80 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
             >
@@ -307,6 +353,11 @@ export default function AIChatWidget() {
                     Score: {briefing.health_score}/100
                   </span>
                 )}
+                {lastUpdated && (
+                  <span className="hidden sm:inline text-[10px] text-text/50 font-normal">
+                    Synced {lastUpdated}
+                  </span>
+                )}
               </div>
               {briefingOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
@@ -317,6 +368,17 @@ export default function AIChatWidget() {
                   <div className="flex items-center justify-center py-4 text-text/60 gap-2">
                     <RefreshCw className="h-4 w-4 animate-spin text-teal-600" />
                     <span>Analyzing clinic metrics for today...</span>
+                  </div>
+                ) : briefingError ? (
+                  <div className="rounded-xl border border-red-300 bg-red-50 p-2.5 text-xs text-red-700 dark:border-red-500/40 dark:bg-red-500/10 dark:text-red-300 flex items-center justify-between gap-2">
+                    <span>{briefingError}</span>
+                    <button
+                      type="button"
+                      onClick={() => fetchBriefing(true)}
+                      className="rounded-lg bg-red-100 hover:bg-red-200 dark:bg-red-900/50 px-2.5 py-1 text-[11px] font-semibold text-red-800 dark:text-red-200 transition-colors"
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : briefing ? (
                   <>
@@ -354,12 +416,30 @@ export default function AIChatWidget() {
                       </div>
                     )}
 
-                    <div className="text-[11px] text-text/70 italic flex items-center gap-1 pt-0.5">
-                      <span>{briefing.daily_tip}</span>
+                    <div className="flex items-center justify-between text-[11px] text-text/70 pt-0.5">
+                      <span className="italic truncate max-w-[75%]">{briefing.daily_tip}</span>
+                      <button
+                        type="button"
+                        onClick={() => fetchBriefing(true)}
+                        disabled={loadingBriefing}
+                        className="inline-flex items-center gap-1 font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 hover:underline shrink-0"
+                      >
+                        <RefreshCw className={`h-3 w-3 ${loadingBriefing ? 'animate-spin' : ''}`} />
+                        Refresh
+                      </button>
                     </div>
                   </>
                 ) : (
-                  <p className="text-center text-text/60 py-2">Click refresh to load today's briefing.</p>
+                  <div className="text-center py-3">
+                    <button
+                      type="button"
+                      onClick={() => fetchBriefing(true)}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-teal-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-teal-700 transition-colors shadow-sm"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      Load Today's Briefing
+                    </button>
+                  </div>
                 )}
               </div>
             )}

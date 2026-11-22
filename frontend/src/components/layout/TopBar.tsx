@@ -9,6 +9,7 @@ import {
   PanelLeft,
   Plus,
   Receipt,
+  RefreshCw,
   Sun,
   Wallet,
 } from 'lucide-react';
@@ -53,6 +54,7 @@ export default function TopBar({ onToggleSidebar, onOpenMenu }: TopBarProps) {
   const now = useCurrentTime();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const menuWrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -149,6 +151,19 @@ export default function TopBar({ onToggleSidebar, onOpenMenu }: TopBarProps) {
             </div>
           )}
         </div>
+
+        <button
+          type="button"
+          aria-label="Refresh clinic data"
+          onClick={() => {
+            setIsRefreshing(true);
+            window.location.reload();
+          }}
+          className={iconButtonClass}
+          title="Refresh clinic data"
+        >
+          <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+        </button>
 
         <button
           type="button"

@@ -73,28 +73,51 @@ class ChatReplyOut(BaseModel):
 
 
 def _get_clinic_context(session: Session) -> dict[str, Any]:
-    today = get_today(session)
-    cfg = _settings(session)
-    opening_cash = cfg.opening_cash if cfg else 90000.0
-    safety_buffer = cfg.safety_buffer if cfg else 45000.0
-    walk_in_weekly = cfg.weekly_walk_in_collections if cfg else 30000.0
+    try:
+        today = get_today(session)
+    except Exception:
+        from datetime import date
+        today = date.today()
 
-    # Overdue invoices
-    overdue_list = overdue_items(session, today)
-    overdue_total = sum(outstanding(inv) for inv, _, _ in overdue_list)
+    try:
+        cfg = _settings(session)
+        opening_cash = cfg.opening_cash if cfg else 90000.0
+        safety_buffer = cfg.safety_buffer if cfg else 45000.0
+        walk_in_weekly = cfg.weekly_walk_in_collections if cfg else 30000.0
+    except Exception:
+        opening_cash = 90000.0
+        safety_buffer = 45000.0
+        walk_in_weekly = 30000.0
 
-    # Bills
-    bills = session.exec(select(Bill)).all()
-    unpaid_bills = [b for b in bills if b.paid_at is None]
-    bills_next_7d = [b for b in unpaid_bills if 0 <= (b.first_due_date - today).days <= 7]
-    bills_7d_total = sum(b.amount for b in bills_next_7d)
+    try:
+        overdue_list = overdue_items(session, today)
+        overdue_total = sum(outstanding(inv) for inv, _, _ in overdue_list)
+    except Exception:
+        overdue_list = []
+        overdue_total = 0.0
 
-    # Gap actions
-    gap_actions = build_gap_actions(session)
+    try:
+        bills = session.exec(select(Bill)).all()
+        unpaid_bills = [b for b in bills if b.paid_at is None]
+        bills_next_7d = [b for b in unpaid_bills if 0 <= (b.first_due_date - today).days <= 7]
+        bills_7d_total = sum(b.amount for b in bills_next_7d)
+    except Exception:
+        bills = []
+        unpaid_bills = []
+        bills_next_7d = []
+        bills_7d_total = 0.0
 
-    # Funding chains
-    funding_chains = build_bill_funding_chain(session)
-    gap_bills = [fc for fc in funding_chains if fc.gap_amount > 0]
+    try:
+        gap_actions = build_gap_actions(session)
+    except Exception:
+        gap_actions = []
+
+    try:
+        funding_chains = build_bill_funding_chain(session)
+        gap_bills = [fc for fc in funding_chains if fc.gap_amount > 0]
+    except Exception:
+        funding_chains = []
+        gap_bills = []
 
     return {
         "today": today.isoformat(),

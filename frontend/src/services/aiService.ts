@@ -1,4 +1,4 @@
-import { api, unwrap } from './api';
+import { api } from './api';
 
 export interface UrgentAction {
   symbol: string;
@@ -37,13 +37,21 @@ export interface ChatResponse {
 }
 
 export const aiService = {
-  getDailyBriefing: (): Promise<DailyBriefing> =>
-    unwrap<{ data?: DailyBriefing } | DailyBriefing>(api.get('/ai/daily-briefing')).then((res: any) =>
-      res && 'data' in res ? res.data : res,
-    ),
+  getDailyBriefing: async (): Promise<DailyBriefing> => {
+    const res = await api.get('/ai/daily-briefing');
+    const data = res.data?.data ?? res.data;
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response structure from daily briefing API');
+    }
+    return data as DailyBriefing;
+  },
 
-  sendMessage: (message: string, history: ChatMessage[] = []): Promise<ChatResponse> =>
-    unwrap<{ data?: ChatResponse } | ChatResponse>(api.post('/ai/chat', { message, history })).then(
-      (res: any) => (res && 'data' in res ? res.data : res),
-    ),
+  sendMessage: async (message: string, history: ChatMessage[] = []): Promise<ChatResponse> => {
+    const res = await api.post('/ai/chat', { message, history });
+    const data = res.data?.data ?? res.data;
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response structure from AI chat API');
+    }
+    return data as ChatResponse;
+  },
 };
