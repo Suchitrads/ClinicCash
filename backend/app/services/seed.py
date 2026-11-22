@@ -68,10 +68,12 @@ def reset_and_seed(session: Session) -> dict:
         session.exec(delete(model))
     session.commit()
 
+    # 1. Insert and commit Payers first so foreign keys exist in DB
     payer_type = {}
     for pid, name, ptype in PAYERS:
         session.add(Payer(id=pid, name=name, type=ptype))
         payer_type[pid] = ptype
+    session.commit()
 
     patient_map = {
         "INV-001": "Ravi Kumar", "INV-002": "Asha Menon", "INV-003": "Vikram Seth",
@@ -79,12 +81,15 @@ def reset_and_seed(session: Session) -> dict:
         "INV-007": "Kavya R.", "INV-008": "Rohan D.", "INV-009": "Sana M.", "INV-010": "Nila V."
     }
 
+    # 2. Insert and commit Invoices
     for iid, pid, label, amount, offset, stage in INVOICES:
         due = today + timedelta(days=offset)
         session.add(Invoice(id=iid, payer_id=pid, patient_name=patient_map.get(iid), item_label=label, amount=amount,
                             due_date=due, claim_stage=stage,
                             created_at=due - timedelta(days=30)))
+    session.commit()
 
+    # 3. Insert and commit Payment History, Bills, and Settings
     history_rows = 0
     for pid, delays in HISTORY_DELAYS.items():
         for i, delay in enumerate(delays):
@@ -111,7 +116,12 @@ def reset_and_seed(session: Session) -> dict:
 def seed_if_empty(session: Session) -> bool:
     """Seeds default clinic settings and sample data if ClinicSettings table is empty."""
     from sqlmodel import select
-    if session.exec(select(ClinicSettings)).first() is not None:
+    try:
+        if session.exec(select(ClinicSettings)).first() is not None:
+            return False
+        reset_and_seed(session)
+        return True
+    except Exception as e:
+        session.rollback()
+        print(f"[seed] Warning during seed_if_empty: {e}")
         return False
-    reset_and_seed(session)
-    return True

@@ -22,9 +22,12 @@ def init_db() -> None:
     if is_sqlite:
         ensure_columns()
     # Seed default clinic settings and sample data if database is brand new
-    with Session(engine) as session:
-        from app.services.seed import seed_if_empty
-        seed_if_empty(session)
+    try:
+        with Session(engine) as session:
+            from app.services.seed import seed_if_empty
+            seed_if_empty(session)
+    except Exception as e:
+        print(f"[db] Warning during init_db seed: {e}")
 
 
 def _all_subclasses(cls) -> list:
