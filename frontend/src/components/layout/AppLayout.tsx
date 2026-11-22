@@ -3,6 +3,7 @@ import { Link, Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
 import { useAuth } from '../../contexts/AuthContext';
+import AIChatWidget from '../ai/AIChatWidget';
 
 const FADE_IN_STYLE = `
 @keyframes cc-fade-in {
@@ -119,6 +120,9 @@ export default function AppLayout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Floating AI Chat Assistant Widget */}
+      <AIChatWidget />
     </div>
   );
 }

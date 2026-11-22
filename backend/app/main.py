@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.routers import health
 from app.db import init_db
-from app.routers import admin, alerts, auth, bills, clinic_settings, dashboard, forecast, gap_closer, invoices, payment_plans, reminders, reports
+from app.routers import admin, ai, alerts, auth, bills, clinic_settings, dashboard, forecast, gap_closer, invoices, payment_plans, reminders, reports
 
 
 @asynccontextmanager
@@ -63,6 +63,7 @@ app.include_router(health.router)
 
 routers_to_mount = [
     admin.router,
+    ai.router,
     invoices.router,
     dashboard.router,
     payment_plans.router,
