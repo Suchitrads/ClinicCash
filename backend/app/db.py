@@ -13,21 +13,38 @@ def get_database_url() -> str:
 
 db_url = get_database_url()
 is_sqlite = db_url.startswith("sqlite")
-connect_args = {"check_same_thread": False} if is_sqlite else {}
-engine = create_engine(db_url, connect_args=connect_args, pool_pre_ping=not is_sqlite)
+connect_args = {"check_same_thread": False} if is_sqlite else {"connect_timeout": 10}
+engine = create_engine(
+    db_url,
+    connect_args=connect_args,
+    pool_pre_ping=not is_sqlite,
+    pool_recycle=300 if not is_sqlite else -1,
+)
 
 
 def init_db() -> None:
-    SQLModel.metadata.create_all(engine)
+    print("[db] Starting database initialization...", flush=True)
+    try:
+        SQLModel.metadata.create_all(engine)
+        print("[db] Schema tables created or verified successfully.", flush=True)
+    except Exception as e:
+        print(f"[db] Warning during create_all: {e}", flush=True)
+
     if is_sqlite:
-        ensure_columns()
+        try:
+            ensure_columns()
+        except Exception as e:
+            print(f"[db] Warning during ensure_columns: {e}", flush=True)
+
     # Seed default clinic settings and sample data if database is brand new
     try:
         with Session(engine) as session:
             from app.services.seed import seed_if_empty
-            seed_if_empty(session)
+            seeded = seed_if_empty(session)
+            print(f"[db] Seed check completed (newly_seeded={seeded})", flush=True)
     except Exception as e:
-        print(f"[db] Warning during init_db seed: {e}")
+        print(f"[db] Warning during init_db seed: {e}", flush=True)
+    print("[db] Database initialization finished.", flush=True)
 
 
 def _all_subclasses(cls) -> list:

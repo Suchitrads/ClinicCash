@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+import threading
 from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
@@ -7,7 +9,24 @@ from app.config import settings
 from app.routers import health
 from app.db import init_db
 from app.routers import admin, alerts, auth, bills, clinic_settings, dashboard, forecast, gap_closer, invoices, payment_plans, reminders, reports
-app = FastAPI(title="ClinicCash API", version="0.1.0")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run DB init in a background thread so port binding is never blocked
+    print("[startup] Launching database initialization thread...", flush=True)
+    t = threading.Thread(target=init_db, daemon=True, name="db-init-worker")
+    t.start()
+    t.join(timeout=5.0)
+    if t.is_alive():
+        print("[startup] DB init still running in background, continuing to bind port...", flush=True)
+    else:
+        print("[startup] DB init completed before port bind.", flush=True)
+    yield
+    print("[shutdown] ClinicCash API shutting down.", flush=True)
+
+
+app = FastAPI(title="ClinicCash API", version="0.1.0", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -41,7 +60,6 @@ def root():
 
 
 app.include_router(health.router)
-init_db()
 
 routers_to_mount = [
     admin.router,
